@@ -8,6 +8,7 @@ from fake_useragent import UserAgent
 import logging
 from typing import List, Dict
 from .database import insert_scraped_news, fetch_scraped_news
+from utils.embedding import generate_embedding
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -34,6 +35,7 @@ def scrape_article(url: str) -> Dict[str, str]:
     scrape_date = datetime.today().strftime("%Y-%m-%d")
     title = article.title
     text = article.text
+    embedding = generate_embedding(title, text)
     main_image = article.top_image
 
     # Sleep for a random duration to avoid being blocked
@@ -46,6 +48,7 @@ def scrape_article(url: str) -> Dict[str, str]:
         "current_date": scrape_date,
         "title": title,
         "text": text,
+        "embedding": embedding,
         "main_image": main_image,
     }
 
