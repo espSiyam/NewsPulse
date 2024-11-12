@@ -9,7 +9,7 @@ import logging
 from typing import List, Dict
 from .database import insert_scraped_news, fetch_scraped_news
 from utils.embedding import generate_embedding
-
+from utils.constants import WORD_COUNT_THRESHOLD
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -35,6 +35,12 @@ def scrape_article(url: str) -> Dict[str, str]:
     scrape_date = datetime.today().strftime("%Y-%m-%d")
     title = article.title
     text = article.text
+    word_count = len(text.split())
+    # Ignore further processing if word count is less than 50
+    if word_count < WORD_COUNT_THRESHOLD:
+        logger.info(f"Ignoring URL: {url} due to insufficient word count ({word_count})")
+        return {"status": "ignored", "url": url}
+
     embedding = generate_embedding(title, text)
     main_image = article.top_image
 
@@ -48,6 +54,7 @@ def scrape_article(url: str) -> Dict[str, str]:
         "current_date": scrape_date,
         "title": title,
         "text": text,
+        "word_count": word_count,
         "embedding": embedding,
         "main_image": main_image,
     }
@@ -69,6 +76,8 @@ def scrape_and_insert_news(
         logger.info(f"Processing URL: {url}")
         try:
             scraped_data = scrape_article(url)
+            if scraped_data["status"] == "ignored":
+                continue
             scraped_data.update(news_info)
             insert_scraped_news(db_name, collection_name, scraped_data)
         except requests.RequestException as e:
