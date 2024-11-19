@@ -18,13 +18,7 @@ def fetch_news(db_name: str, collection_name: str, limit: int) -> List[Dict]:
         with MongoClient(uri, server_api=ServerApi("1")) as client:
             collection = client[db_name][collection_name]
             all_documents = list(
-                collection.find({},{"_id": 0,
-                                    "title": 1, 
-                                    "text": 1, 
-                                    "main_image": 1, 
-                                    "domain": 1, 
-                                    "category": 1, 
-                                    }).limit(limit))
+                collection.find().limit(limit))
             return all_documents
     except PyMongoError as e:
         logging.error(f"An error occurred while fetching data: {e}")
