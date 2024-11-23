@@ -3,7 +3,7 @@ import tldextract
 import xml.etree.ElementTree as ET
 import logging
 from typing import List, Dict
-
+from utils.constants import cnn_domain_url, bbc_domain_url, foxnews_domain_url
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -63,13 +63,23 @@ def parse_sitemap(sitemap_url: str) -> List[Dict[str, str]]:
         else:
             logger.warning(f"Unsupported domain: {domain}")
             continue
-
+        
+        if domain == "cnn":
+            domain_url = cnn_domain_url
+        elif domain == "foxnews":
+            domain_url = foxnews_domain_url
+        elif domain == "bbc":
+            domain_url = bbc_domain_url
+        else:
+            domain_url = None
+            
         parsed_sitemap.append(
             {
                 "domain": domain,
                 "category": category,
                 "url": loc,
                 "publication_date": publication_date,
+                "domain_url": domain_url,
             }
         )
 
