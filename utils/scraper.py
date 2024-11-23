@@ -10,6 +10,8 @@ from typing import List, Dict
 from .database import insert_scraped_news, fetch_scraped_news
 from utils.embedding import generate_embedding
 from utils.constants import WORD_COUNT_THRESHOLD
+from utils.sentiment import analyze_sentiment
+from utils.summarizer import summarize_text
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -35,6 +37,7 @@ def scrape_article(url: str) -> Dict[str, str]:
     scrape_date = datetime.today().strftime("%Y-%m-%d")
     title = article.title
     text = article.text
+    main_image = article.top_image
     word_count = len(text.split())
     # Ignore further processing if word count is less than 50
     if word_count < WORD_COUNT_THRESHOLD:
@@ -42,8 +45,9 @@ def scrape_article(url: str) -> Dict[str, str]:
         return {"status": "ignored", "url": url}
 
     embedding = generate_embedding(title, text)
-    main_image = article.top_image
-
+    sentiment = analyze_sentiment(text)
+    summary = summarize_text(text)
+    
     # Sleep for a random duration to avoid being blocked
     time.sleep(random.uniform(1, 5))
 
@@ -54,6 +58,8 @@ def scrape_article(url: str) -> Dict[str, str]:
         "current_date": scrape_date,
         "title": title,
         "text": text,
+        "summary": summary,
+        "sentiment": sentiment,
         "word_count": word_count,
         "embedding": embedding,
         "main_image": main_image,
