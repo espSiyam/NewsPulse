@@ -79,7 +79,7 @@ def parse_sitemap(sitemap_url: str) -> List[Dict[str, str]]:
                 "category": category,
                 "url": loc,
                 "publication_date": publication_date,
-                "domain_url": domain_url,
+                "domain_logo": domain_url,
             }
         )
 
