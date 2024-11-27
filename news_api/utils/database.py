@@ -3,6 +3,7 @@ from dotenv import load_dotenv
 from pymongo.mongo_client import MongoClient
 from pymongo.server_api import ServerApi
 from pymongo.errors import PyMongoError
+from utils.json_serializer import convert_object_id
 from bson import ObjectId
 from typing import List, Dict
 import logging
@@ -17,18 +18,40 @@ def fetch_news(db_name: str, collection_name: str, limit: int) -> List[Dict]:
         with MongoClient(uri, server_api=ServerApi("1")) as client:
             collection = client[db_name][collection_name]
             all_documents = list(
-                collection.find({}, {
-                    "_id": 0, 
-                    "url": 1,
-                    "title": 1, 
-                    "text": 1, 
-                    "main_image": 1, 
-                    "domain": 1, 
-                    "category": 1,
-                    }).limit(limit)
+                collection.find(
+                    {"word_count": {"$gte": 50}}, 
+                    {
+                        "_id": 1, 
+                        "url": 1,
+                        "domain_logo": 1,
+                        "title": 1, 
+                        "summary": 1,
+                        "sentiment": 1,
+                        "main_image": 1, 
+                        "domain": 1, 
+                        "category": 1,
+                        "publication_date": 1,
+                        "top_5_similar": 1,
+                    }
+                ).limit(limit)
             )
             
-            return all_documents
+            # Fetch details for top_5_similar
+            for doc in all_documents:
+                if "top_5_similar" in doc:
+                    similar_docs = []
+                    for similar_id in doc["top_5_similar"]:
+                        similar_doc = collection.find_one(
+                            {"_id": ObjectId(similar_id)},
+                            {"_id": 1, "title": 1, "url": 1}
+                        )
+                        if similar_doc:
+                            similar_docs.append(similar_doc)
+                    doc["top_5_similar"] = similar_docs
+            
+            serialized_news = convert_object_id(all_documents)
+            return serialized_news
+        
     except PyMongoError as e:
         logging.error(f"An error occurred while fetching data: {e}")
         raise RuntimeError(f"An error occurred while fetching data: {e}")

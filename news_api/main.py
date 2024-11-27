@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List
@@ -7,7 +7,6 @@ import uvicorn
 
 DB_NAME = "cognitive_project"
 SCRAPE_COLLECTION = "news_scraper"
-LIMIT = 10
 
 app = FastAPI()
 
@@ -20,8 +19,8 @@ app.add_middleware(
 )
 
 @app.get("/",)
-def read_root():
-    all_news = fetch_news(DB_NAME, SCRAPE_COLLECTION, LIMIT)
+def read_root(limit: int = Query(10, description="Number of news items to fetch")):
+    all_news = fetch_news(DB_NAME, SCRAPE_COLLECTION, limit)
     return all_news
 
 if __name__ == "__main__":
