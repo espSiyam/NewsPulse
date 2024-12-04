@@ -9,3 +9,4 @@ WORD_COUNT_THRESHOLD = 50
 cnn_domain_url = "https://school-news-pulse.s3.eu-central-1.amazonaws.com/cnn.png"
 bbc_domain_url = "https://school-news-pulse.s3.eu-central-1.amazonaws.com/bbc_logo.png"
 foxnews_domain_url = "https://school-news-pulse.s3.eu-central-1.amazonaws.com/fox-news.png"
+wall_street_journal_domain_url = "https://school-news-pulse.s3.eu-central-1.amazonaws.com/wsj.png"

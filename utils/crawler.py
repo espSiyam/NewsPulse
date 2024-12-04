@@ -3,7 +3,8 @@ import tldextract
 import xml.etree.ElementTree as ET
 import logging
 from typing import List, Dict
-from utils.constants import cnn_domain_url, bbc_domain_url, foxnews_domain_url
+from utils.constants import cnn_domain_url, bbc_domain_url, foxnews_domain_url, wall_street_journal_domain_url
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -17,18 +18,20 @@ SUPPORTED_DOMAINS = {
     "bbc": ["articles", "news", "sport"],
     "cnn": ["video"],
     "foxnews": [],
+    "wsj": [],
 }
 
-
 def fetch_sitemap(sitemap_url: str) -> str:
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
+    }
     try:
-        response = requests.get(sitemap_url)
+        response = requests.get(sitemap_url, headers=headers)
         response.raise_for_status()
         return response.content
     except requests.RequestException as e:
         logger.error(f"Error fetching sitemap: {e}")
         raise
-
 
 def parse_sitemap(sitemap_url: str) -> List[Dict[str, str]]:
     """
@@ -52,24 +55,30 @@ def parse_sitemap(sitemap_url: str) -> List[Dict[str, str]]:
     for url in root.findall("ns:url", NAME_SPACE):
         loc = url.find("ns:loc", NAME_SPACE).text
         news_section = url.find("news:news", NAME_SPACE)
-        publication_date = news_section.find("news:publication_date", NAME_SPACE).text
-        category = loc.split("/")[3]
-
-        if domain in SUPPORTED_DOMAINS:
-            if domain == "cnn" and category in SUPPORTED_DOMAINS[domain]:
-                continue
-            elif domain != "cnn" and category not in SUPPORTED_DOMAINS[domain]:
-                continue
+        if news_section is not None:
+            publication_date = news_section.find("news:publication_date", NAME_SPACE)
+            if publication_date is not None:
+                publication_date = publication_date.text
+            else:
+                publication_date = url.find("ns:lastmod", NAME_SPACE).text
         else:
-            logger.warning(f"Unsupported domain: {domain}")
-            continue
+            publication_date = url.find("ns:lastmod", NAME_SPACE).text
+
+        category = loc.split("/")[3]
         
+        # Exclude "video" category
+        if category == "video":
+            logger.info(f"Skipping URL in video category: {loc}")
+            continue
+    
         if domain == "cnn":
             domain_url = cnn_domain_url
         elif domain == "foxnews":
             domain_url = foxnews_domain_url
         elif domain == "bbc":
             domain_url = bbc_domain_url
+        elif domain == "wsj":
+            domain_url = wall_street_journal_domain_url
         else:
             domain_url = None
             
@@ -84,7 +93,6 @@ def parse_sitemap(sitemap_url: str) -> List[Dict[str, str]]:
         )
 
     return parsed_sitemap
-
 
 def crawl_news(sitemap_urls: List[str]) -> List[Dict[str, str]]:
     """
@@ -107,7 +115,8 @@ def crawl_news(sitemap_urls: List[str]) -> List[Dict[str, str]]:
         domain = tldextract.extract(sitemap_url).domain
 
         if domain in SUPPORTED_DOMAINS:
-            all_news.extend(parse_sitemap(sitemap_url))
+            news_items = parse_sitemap(sitemap_url)
+            all_news.extend(news_items)
         else:
             logger.error(f"Unsupported domain: {domain}")
             raise ValueError(f"Unsupported domain: {domain}")

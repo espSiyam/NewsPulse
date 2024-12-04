@@ -1,10 +1,12 @@
+import random
 from utils.crawler import crawl_news
-from utils.database import fetch_crawled_news, insert_crawled_news
+from utils.database import fetch_crawled_news, insert_crawled_news, limit_documents_per_domain
 
 SITEMAP_URLS = [
     "https://www.bbc.com/sitemaps/https-sitemap-com-news-1.xml",
     "https://edition.cnn.com/sitemap/news.xml",
     "https://www.foxnews.com/sitemap.xml?type=news",
+    "https://www.wsj.com/sitemap.xml"
 ]
 
 # Database and collection names
@@ -13,6 +15,9 @@ COLLEC_NAME = "news_crawler"
 
 # Crawl news links from the provided sitemap URLs
 crawled_news_links = crawl_news(SITEMAP_URLS)
+
+print(crawled_news_links)
+random.shuffle(crawled_news_links)
 
 # Fetch existing news entries from the database
 existing_news_entries = fetch_crawled_news(DB_NAME, COLLEC_NAME)
@@ -29,5 +34,7 @@ new_news = [
 
 # Insert the filtered news links into the database
 insertion_status = insert_crawled_news(DB_NAME, COLLEC_NAME, new_news)
-
 print(insertion_status)
+
+# Limit the number of documents per domain
+limit_documents_per_domain(DB_NAME, COLLEC_NAME, 100)
