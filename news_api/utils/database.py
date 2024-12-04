@@ -35,20 +35,6 @@ def fetch_news(db_name: str, collection_name: str, limit: int) -> List[Dict]:
                     }
                 ).limit(limit)
             )
-            
-            # Fetch details for top_5_similar
-            for doc in all_documents:
-                if "top_5_similar" in doc:
-                    similar_docs = []
-                    for similar_id in doc["top_5_similar"]:
-                        similar_doc = collection.find_one(
-                            {"_id": ObjectId(similar_id)},
-                            {"_id": 1, "title": 1, "url": 1}
-                        )
-                        if similar_doc:
-                            similar_docs.append(similar_doc)
-                    doc["top_5_similar"] = similar_docs
-            
             serialized_news = convert_object_id(all_documents)
             return serialized_news
         

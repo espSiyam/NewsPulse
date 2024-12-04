@@ -85,7 +85,6 @@ def parse_sitemap(sitemap_url: str) -> List[Dict[str, str]]:
         parsed_sitemap.append(
             {
                 "domain": domain,
-                "category": category,
                 "url": loc,
                 "publication_date": publication_date,
                 "domain_logo": domain_url,

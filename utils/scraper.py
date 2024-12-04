@@ -12,6 +12,7 @@ from utils.embedding import generate_embedding
 from utils.constants import WORD_COUNT_THRESHOLD
 from utils.sentiment import analyze_sentiment
 from utils.summarizer import summarize_text
+from utils.classification import classify_text
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -47,7 +48,7 @@ def scrape_article(url: str) -> Dict[str, str]:
     embedding = generate_embedding(title, text)
     sentiment = analyze_sentiment(text)
     summary = summarize_text(text)
-    
+    category = classify_text(text)
     # Sleep for a random duration to avoid being blocked
     time.sleep(random.uniform(1, 5))
 
@@ -59,6 +60,7 @@ def scrape_article(url: str) -> Dict[str, str]:
         "title": title,
         "text": text,
         "summary": summary,
+        "category": category,
         "sentiment": sentiment,
         "word_count": word_count,
         "embedding": embedding,

@@ -102,6 +102,9 @@ def fetch_scraped_news(db_name: str, collection_name: str) -> List[Dict]:
 
 def find_top_5_similar_docs(db_name: str, collection_name: str, search_vector, doc_id):
     try:
+        if not isinstance(search_vector, list) or not all(isinstance(x, (int, float)) for x in search_vector):
+            raise ValueError(f"Invalid search vector type for document {doc_id}: {search_vector}")
+
         with MongoClient(uri, server_api=ServerApi("1")) as client:
             db = client[db_name]
             result = db[collection_name].aggregate([
@@ -113,14 +116,26 @@ def find_top_5_similar_docs(db_name: str, collection_name: str, search_vector, d
                         "numCandidates": 100,
                         "limit": 6
                     }
+                },
+                {
+                    "$project": {
+                        "_id": 1,
+                        "title": 1,
+                        "url": 1,
+                        "main_image": 1
+                    }
                 }
             ])
             similar_docs = list(result)
             similar_docs = [doc for doc in similar_docs if doc['_id'] != doc_id]
+            
             return similar_docs[:5]
     except PyMongoError as e:
         logging.error(f"An error occurred while finding similar documents: {e}")
         raise RuntimeError(f"An error occurred while finding similar documents: {e}")
+    except ValueError as e:
+        logging.error(e)
+        raise RuntimeError(e)
 
 def find_sim_news(db_name: str, collection_name: str):
     try:
@@ -132,17 +147,20 @@ def find_sim_news(db_name: str, collection_name: str):
             for doc in documents:
                 try:
                     logging.info(f"Searching for similar documents for: {doc['_id']}")
-                    search_vector = doc['embedding']
+                    search_vector = doc.get('embedding', [])
+                    if not search_vector:
+                        logging.warning(f"Skipping document {doc['_id']} due to empty embedding")
+                        continue
+
                     similar_docs = find_top_5_similar_docs(db_name, collection_name, search_vector, doc['_id'])
-                    top_5_similar_ids = [similar_doc['_id'] for similar_doc in similar_docs]
                     collection.update_one(
-                        {"_id": doc["_id"]}, {"$set": {"top_5_similar": top_5_similar_ids}}
+                        {"_id": doc["_id"]}, {"$set": {"top_5_similar": similar_docs}}
                     )
                 except Exception as e:
                     logging.error(f"An error occurred while processing document {doc['_id']}: {e}")
-                    continue 
+                    continue  # Continue with the next document
 
-            logging.info(f"All documents updated with top 5 similar document IDs in {db_name}.{collection_name}")
+            logging.info(f"All documents updated with top 5 similar document details in {db_name}.{collection_name}")
     except PyMongoError as e:
         logging.error(f"An error occurred while updating data: {e}")
         raise RuntimeError(f"An error occurred while updating data: {e}")
