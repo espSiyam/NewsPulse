@@ -41,3 +41,39 @@ def fetch_news(db_name: str, collection_name: str, limit: int) -> List[Dict]:
     except PyMongoError as e:
         logging.error(f"An error occurred while fetching data: {e}")
         raise RuntimeError(f"An error occurred while fetching data: {e}")
+
+def fetch_latest_news(db_name: str, collection_name: str, limit: int) -> List[Dict]:
+    # Pipeline to fetch the latest news for each category and domain
+    pipeline = [
+        {"$sort": {"publication_date": -1}},
+        {"$group": {
+            "_id": {"category": "$category", "domain": "$domain"},
+            "latestNews": {"$first": "$$ROOT"}
+        }},
+        {"$replaceRoot": {"newRoot": "$latestNews"}},
+        {"$project": {  # Include only the fields you want in the output
+            "_id": 1,
+            "url": 1,
+            "domain_logo": 1,
+            "title": 1,
+            "main_image": 1,
+            "domain": 1,
+            "category": 1,
+            "publication_date": 1
+        }},
+        {"$limit": limit}  # Adjust this number as needed
+    ]
+    try:
+        with MongoClient(uri, server_api=ServerApi("1")) as client:
+            collection = client[db_name][collection_name]
+            all_documents = list(
+                collection.aggregate(
+                    pipeline
+                    )
+                )
+            serialized_news = convert_object_id(all_documents)
+            return serialized_news
+        
+    except PyMongoError as e:
+        logging.error(f"An error occurred while fetching data: {e}")
+        raise RuntimeError(f"An error occurred while fetching data: {e}")
